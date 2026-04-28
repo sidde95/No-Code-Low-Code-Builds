@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global dark-mode baseline matching GitHub's colour palette */
+body {
+  @apply bg-github-dark text-gray-100;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-github-dark;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-github-border rounded;
+}

@@ -52,6 +52,142 @@ export class ActivityClassifier {
   }
 
   /**
+   * Build a contribution heatmap for the past 365 days.
+   * Returns an array of { date: 'YYYY-MM-DD', count: number } for every day
+   * in the past year (index 0 = oldest, last = today).
+   * @param {Array} events
+   * @returns {Array<{ date: string, count: number }>}
+   */
+  computeContributionHeatmap(events) {
+    // Count any contribution event per day
+    const CONTRIBUTION_TYPES = new Set([
+      'PushEvent', 'PullRequestEvent', 'IssuesEvent',
+      'CreateEvent', 'PullRequestReviewEvent', 'CommitCommentEvent'
+    ])
+    const dayCounts = new Map()
+    for (const event of events) {
+      if (CONTRIBUTION_TYPES.has(event.type)) {
+        const day = event.created_at.slice(0, 10)
+        dayCounts.set(day, (dayCounts.get(day) || 0) + 1)
+      }
+    }
+
+    const result = []
+    const todayMs = Date.now()
+    for (let i = 364; i >= 0; i--) {
+      const d = new Date(todayMs - i * 24 * 60 * 60 * 1000)
+      const date = d.toISOString().slice(0, 10)
+      result.push({ date, count: dayCounts.get(date) || 0 })
+    }
+    return result
+  }
+
+  /**
+   * Compute activity type breakdown as counts and percentages.
+   * @param {Array} events
+   * @returns {{ commits: number, pullRequests: number, issues: number, reviews: number, total: number }}
+   */
+  computeActivityBreakdown(events) {
+    let commits = 0, pullRequests = 0, issues = 0, reviews = 0
+    for (const event of events) {
+      switch (event.type) {
+        case 'PushEvent': commits++; break
+        case 'PullRequestEvent': pullRequests++; break
+        case 'IssuesEvent': issues++; break
+        case 'PullRequestReviewEvent': reviews++; break
+        default: break
+      }
+    }
+    const total = commits + pullRequests + issues + reviews || 1
+    return {
+      commits,
+      pullRequests,
+      issues,
+      reviews,
+      total,
+      commitsPct: Math.round((commits / total) * 100),
+      pullRequestsPct: Math.round((pullRequests / total) * 100),
+      issuesPct: Math.round((issues / total) * 100),
+      reviewsPct: Math.round((reviews / total) * 100)
+    }
+  }
+
+  /**
+   * Build a summarised activity timeline grouped by date (newest first).
+   * Returns at most 10 date groups.
+   * @param {Array} events
+   * @returns {Array<{ date: string, items: Array<{ type: string, description: string }> }>}
+   */
+  computeActivityTimeline(events) {
+    const grouped = new Map()
+
+    for (const event of events) {
+      const date = event.created_at.slice(0, 10)
+      if (!grouped.has(date)) grouped.set(date, [])
+      grouped.get(date).push(event)
+    }
+
+    const result = []
+    for (const [date, dayEvents] of [...grouped.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
+      const items = []
+
+      // Pushes — group by repo
+      const pushByRepo = new Map()
+      for (const e of dayEvents) {
+        if (e.type === 'PushEvent') {
+          const repo = e.repo?.name || 'unknown'
+          pushByRepo.set(repo, (pushByRepo.get(repo) || 0) + (e.payload?.commits?.length || 1))
+        }
+      }
+      if (pushByRepo.size > 0) {
+        const totalCommits = [...pushByRepo.values()].reduce((a, b) => a + b, 0)
+        const repoCount = pushByRepo.size
+        const repoNames = [...pushByRepo.keys()].slice(0, 3)
+        items.push({
+          type: 'commits',
+          description: `Created ${totalCommits} commit${totalCommits !== 1 ? 's' : ''} in ${repoCount} repositor${repoCount !== 1 ? 'ies' : 'y'}`,
+          repos: repoNames
+        })
+      }
+
+      // New repos created
+      const created = dayEvents.filter((e) => e.type === 'CreateEvent' && e.payload?.ref_type === 'repository')
+      if (created.length > 0) {
+        items.push({
+          type: 'repos',
+          description: `Created ${created.length} repositor${created.length !== 1 ? 'ies' : 'y'}`,
+          repos: created.map((e) => e.repo?.name).filter(Boolean).slice(0, 3)
+        })
+      }
+
+      // PRs opened
+      const prsOpened = dayEvents.filter((e) => e.type === 'PullRequestEvent' && e.payload?.action === 'opened')
+      if (prsOpened.length > 0) {
+        items.push({
+          type: 'pullRequests',
+          description: `Opened ${prsOpened.length} pull request${prsOpened.length !== 1 ? 's' : ''}`,
+          repos: prsOpened.map((e) => e.repo?.name).filter(Boolean).slice(0, 3)
+        })
+      }
+
+      // Issues opened
+      const issuesOpened = dayEvents.filter((e) => e.type === 'IssuesEvent' && e.payload?.action === 'opened')
+      if (issuesOpened.length > 0) {
+        items.push({
+          type: 'issues',
+          description: `Opened ${issuesOpened.length} issue${issuesOpened.length !== 1 ? 's' : ''}`,
+          repos: issuesOpened.map((e) => e.repo?.name).filter(Boolean).slice(0, 3)
+        })
+      }
+
+      if (items.length > 0) result.push({ date, items })
+      if (result.length >= 10) break
+    }
+
+    return result
+  }
+
+  /**
    * Compute the current consecutive-day push streak, the longest ever streak,
    * and a boolean array for the last 30 days (true = had at least one push).
    * @param {Array} events

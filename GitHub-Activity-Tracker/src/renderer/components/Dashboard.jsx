@@ -5,6 +5,9 @@ import PaceIndicator from '../components/PaceIndicator.jsx'
 import ActivityChart from '../components/ActivityChart.jsx'
 import StreakChart from '../components/StreakChart.jsx'
 import RepoStats from '../components/RepoStats.jsx'
+import ContributionHeatmap from '../components/ContributionHeatmap.jsx'
+import ActivityBreakdown from '../components/ActivityBreakdown.jsx'
+import ActivityTimeline from '../components/ActivityTimeline.jsx'
 
 /**
  * Dashboard — main search UI with history sidebar and results layout.
@@ -113,7 +116,10 @@ export default function Dashboard() {
               <PaceIndicator pace={report.pace} weeklyCount={report.weeklyCount} />
             </div>
 
-            {/* Row 2: Activity chart + Streak */}
+            {/* Row 2: Contribution Heatmap (full width) */}
+            <ContributionHeatmap heatmapData={report.heatmapData} />
+
+            {/* Row 3: Activity chart + Streak */}
             <div className="grid grid-cols-2 gap-4">
               <ActivityChart weeklyGroups={report.weeklyGroups} />
               <StreakChart
@@ -123,7 +129,13 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* Row 3: Repo stats */}
+            {/* Row 4: Activity breakdown + Timeline */}
+            <div className="grid grid-cols-2 gap-4">
+              <ActivityBreakdown activityBreakdown={report.activityBreakdown} />
+              <ActivityTimeline activityTimeline={report.activityTimeline} />
+            </div>
+
+            {/* Row 5: Repo stats */}
             <RepoStats repos={report.repos} />
           </div>
         )}

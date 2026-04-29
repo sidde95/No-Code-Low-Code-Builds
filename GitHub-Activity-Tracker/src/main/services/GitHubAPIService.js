@@ -36,13 +36,21 @@ export class GitHubAPIService {
   }
 
   /**
-   * Fetch the 100 most recent public events for a user.
+   * Fetch up to 300 recent public events for a user (3 pages × 100).
+   * More pages gives better yearly heatmap coverage.
    * @param {string} username
    * @returns {Promise<Array>} Array of GitHub event objects
    */
   async fetchUserEvents(username) {
-    const { data } = await this.#client.get(`/users/${username}/events/public?per_page=100`)
-    return data
+    const pages = [1, 2, 3]
+    const results = await Promise.allSettled(
+      pages.map((page) =>
+        this.#client.get(`/users/${username}/events/public?per_page=100&page=${page}`)
+      )
+    )
+    return results
+      .filter((r) => r.status === 'fulfilled')
+      .flatMap((r) => r.value.data)
   }
 
   /**

@@ -5,16 +5,19 @@
 export class ActivityReport {
   /**
    * @param {Object} opts
-   * @param {Object}  opts.profile       - Serialised UserProfile
-   * @param {Array}   opts.weeklyGroups  - [{ week, commits }]
-   * @param {number}  opts.weeklyCount   - Commits in the past 7 days
-   * @param {string}  opts.pace          - 'low' | 'medium' | 'good'
+   * @param {Object}  opts.profile              - Serialised UserProfile
+   * @param {Array}   opts.weeklyGroups         - [{ week, commits }]
+   * @param {number}  opts.weeklyCount          - Commits in the past 7 days
+   * @param {string}  opts.pace                 - 'low' | 'medium' | 'good'
    * @param {number}  opts.currentStreak
    * @param {number}  opts.longestStreak
-   * @param {boolean[]} opts.last30Days  - Index 0 = today
-   * @param {Array}   opts.repos         - Top repos array
+   * @param {boolean[]} opts.last30Days         - Index 0 = today
+   * @param {Array}   opts.repos                - Top repos array
+   * @param {Array}   opts.heatmapData          - [{ date, count }] for past 365 days
+   * @param {Object}  opts.activityBreakdown    - { commits, pullRequests, issues, reviews, ...Pct }
+   * @param {Array}   opts.activityTimeline     - Grouped activity feed (newest first)
    */
-  constructor({ profile, weeklyGroups, weeklyCount, pace, currentStreak, longestStreak, last30Days, repos }) {
+  constructor({ profile, weeklyGroups, weeklyCount, pace, currentStreak, longestStreak, last30Days, repos, heatmapData, activityBreakdown, activityTimeline }) {
     this.profile = profile
     this.weeklyGroups = weeklyGroups
     this.weeklyCount = weeklyCount
@@ -23,6 +26,9 @@ export class ActivityReport {
     this.longestStreak = longestStreak
     this.last30Days = last30Days
     this.repos = repos
+    this.heatmapData = heatmapData || []
+    this.activityBreakdown = activityBreakdown || {}
+    this.activityTimeline = activityTimeline || []
     this.generatedAt = new Date().toISOString()
   }
 
@@ -46,6 +52,9 @@ export class ActivityReport {
       longestStreak: this.longestStreak,
       last30Days: this.last30Days,
       repos: this.repos,
+      heatmapData: this.heatmapData,
+      activityBreakdown: this.activityBreakdown,
+      activityTimeline: this.activityTimeline,
       summary: this.summary,
       generatedAt: this.generatedAt
     }

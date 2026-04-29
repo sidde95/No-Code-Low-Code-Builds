@@ -45,6 +45,9 @@ export function registerIpcHandlers() {
     const weeklyCount = classifier.countWeeklyCommits(events)
     const pace = classifier.classify(weeklyCount)
     const { currentStreak, longestStreak, last30Days } = classifier.computeStreak(events)
+    const heatmapData = classifier.computeContributionHeatmap(events)
+    const activityBreakdown = classifier.computeActivityBreakdown(events)
+    const activityTimeline = classifier.computeActivityTimeline(events)
 
     // Build previous pace for notification comparison
     const cached = storage.getCachedReport(username)
@@ -62,7 +65,10 @@ export function registerIpcHandlers() {
       currentStreak,
       longestStreak,
       last30Days,
-      repos
+      repos,
+      heatmapData,
+      activityBreakdown,
+      activityTimeline
     })
 
     storage.saveCachedReport(username, report.toJSON())
